@@ -1,6 +1,6 @@
 .ipynb_checkpoints
 .DS_Store
 *.csv
-data/*
+*/data/*
 __pycache__
 nohup.out
