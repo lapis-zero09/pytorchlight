@@ -1,7 +1,9 @@
-import torch.cat as torch_cat
-import torch.Tensor as torch_tensor
+import torch
 import torch.nn as nn
-from torch.nn.functional import F
+import torch.nn.functional as F
+
+
+__all__ = ['Inception', 'inception_v3']
 
 
 class Inception(nn.Module):
@@ -30,7 +32,7 @@ class Inception(nn.Module):
                 import scipy.stats as stats
                 stddev = m.stddev if hasattr(m, 'stddev') else 0.1
                 X = stats.truncnorm(-2, 2, scale=stddev)
-                values = torch_tensor(X.rvs(m.weight.data.numel()))
+                values = torch.Tensor(X.rvs(m.weight.data.numel()))
                 values = values.view(m.weight.data.size())
                 m.weight.data.copy_(values)
             elif isinstance(m, nn.BatchNorm2d):
@@ -38,23 +40,23 @@ class Inception(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
-        x = self.base(x)  # 35 x 35 x 192
+        x = self.base(x)
 
-        x = self.mixed0(x)  # 35 x 35 x 256
-        x = self.mixed1(x)  # 35 x 35 x 288
-        x = self.mixed2(x)  # 35 x 35 x 288
+        x = self.mixed0(x)
+        x = self.mixed1(x)
+        x = self.mixed2(x)
 
-        x = self.mixed3(x)  # 17 x 17 x 768
+        x = self.mixed3(x)
 
-        x = self.mixed4(x)  # 17 x 17 x 768
-        x = self.mixed5(x)  # 17 x 17 x 768
-        x = self.mixed6(x)  # 17 x 17 x 768
-        x = self.mixed7(x)  # 17 x 17 x 768
+        x = self.mixed4(x)
+        x = self.mixed5(x)
+        x = self.mixed6(x)
+        x = self.mixed7(x)
 
-        x = self.mixed8(x)  # 8 x 8 x 1280
+        x = self.mixed8(x)
 
-        x = self.mixed9(x)  # 8 x 8 x 2048
-        x = self.mixed10(x)  # 8 x 8 x 2048
+        x = self.mixed9(x)
+        x = self.mixed10(x)
 
         x = F.avg_pool2d(x, kernel_size=8)
         x = F.dropout(x, training=self.training)
@@ -123,7 +125,7 @@ class NIN_A(nn.Module):
                self.branch5x5(x),
                self.branch3x3dbl(x),
                self.branch_pool(x)]
-        return torch_cat(out, 1)
+        return torch.cat(out, 1)
 
 
 class NIN_B(nn.Module):
@@ -141,7 +143,7 @@ class NIN_B(nn.Module):
         out = [self.branch3x3(x),
                self.branch3x3dbl(x),
                F.max_pool2d(x, kernel_size=3, stride=2)]
-        return torch_cat(out, 1)
+        return torch.cat(out, 1)
 
 
 class NIN_C(nn.Module):
@@ -179,7 +181,7 @@ class NIN_C(nn.Module):
                self.branch7x7(x),
                self.branch7x7dbl(x),
                self.branch_pool(x)]
-        return torch_cat(out, 1)
+        return torch.cat(out, 1)
 
 
 class NIN_D(nn.Module):
@@ -201,7 +203,7 @@ class NIN_D(nn.Module):
         out = [self.branch3x3(x),
                self.branch7x7x3(x),
                F.max_pool2d(x, kernel_size=3, stride=2)]
-        return torch_cat(out, 1)
+        return torch.cat(out, 1)
 
 
 class NIN_E(nn.Module):
@@ -231,19 +233,19 @@ class NIN_E(nn.Module):
         branch3x3 = self.branch3x3_1(x)
         branch3x3 = [self.branch3x3_2a(branch3x3),
                      self.branch3x3_2b(branch3x3)]
-        branch3x3 = torch_cat(branch3x3, 1)
+        branch3x3 = torch.cat(branch3x3, 1)
 
         branch3x3dbl = self.branch3x3dbl_1(x)
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
         branch3x3dbl = [self.branch3x3dbl_3a(branch3x3dbl),
                         self.branch3x3dbl_3b(branch3x3dbl)]
-        branch3x3dbl = torch_cat(branch3x3dbl, 1)
+        branch3x3dbl = torch.cat(branch3x3dbl, 1)
 
         out = [self.branch1x1(x),
                branch3x3,
                branch3x3dbl,
                self.branch_pool(x)]
-        return torch_cat(out, 1)
+        return torch.cat(out, 1)
 
 
 def inception_v3(in_channels=3, num_classes=1000):

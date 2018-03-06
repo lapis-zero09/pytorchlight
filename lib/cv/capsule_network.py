@@ -1,21 +1,17 @@
 import sys
-import torch.cat as torch_cat
-import torch.eye as torch_eye
-import torch.randn as torch_randn
-import torch.mul as torch_mul
-import torch.matmul as torch_matmul
-import torch.zeros as torch_zeros
-import torch.sqrt as torch_sqrt
-import torch.cuda.is_available as is_gpu_available
+import torch
 import torch.nn as nn
-from torch.nn.functional import F
+import torch.nn.functional as F
 from torch.autograd import Variable
+
+
+__all__ = ['squash', 'CapsuleNetwork', 'CapsuleLoss', 'capsule_network']
 
 
 def squash(input_tensor):
     squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)
     output_tensor = squared_norm * input_tensor \
-        / ((1. + squared_norm) * torch_sqrt(squared_norm))
+        / ((1. + squared_norm) * torch.sqrt(squared_norm))
     return output_tensor
 
 
@@ -29,7 +25,7 @@ class PrimaryCaps(nn.Module):
 
     def forward(self, x):
         u = [capsule(x).view(x.size(0), -1, 1) for capsule in self.capsules]
-        u = torch_cat(u, dim=-1)
+        u = torch.cat(u, dim=-1)
         return squash(u)
 
 
@@ -41,26 +37,26 @@ class DigitCaps(nn.Module):
         self.use_gpu = use_gpu
         self.num_iters = num_routing_iters
         self.weights = nn.Parameter(
-            torch_randn(num_classes, num_route_nodes,
+            torch.randn(num_classes, num_route_nodes,
                         in_channels, out_channels)
         )
 
     def forward(self, x):
-        u_ = torch_matmul(
+        u_ = torch.matmul(
             x[None, :, :, None, :], self.weights[:, None, :, :, :])
         if self.use_gpu:
-            b = Variable(torch_zeros(*u_.shape)).cuda()
+            b = Variable(torch.zeros(*u_.shape)).cuda()
         else:
-            b = Variable(torch_zeros(*u_.shape))
+            b = Variable(torch.zeros(*u_.shape))
 
         # routing alg.
         for i in range(self.num_iters):
             c = F.softmax(b, dim=2)
-            s = torch_mul(u_, c).sum(dim=2, keepdim=True)
+            s = torch.mul(u_, c).sum(dim=2, keepdim=True)
             v = squash(s)
 
             if i < self.num_iters - 1:
-                b = b + torch_mul(u_, c).sum(dim=-1, keepdim=True)
+                b = b + torch.mul(u_, c).sum(dim=-1, keepdim=True)
 
         return v.squeeze().transpose(0, 1)
 
@@ -87,19 +83,19 @@ class CapsuleNetwork(nn.Module):
         x = self.primary_caps(x)
         x = self.disit_caps(x)
 
-        cls = torch_sqrt((x**2).sum(dim=-1))
+        cls = torch.sqrt((x**2).sum(dim=-1))
         cls = F.softmax(cls, dim=-1)
 
         if y is None:
             _, idx = cls.max(dim=1)
             if self.use_gpu:
                 y = Variable(
-                    torch_eye(10)).cuda().index_select(dim=0, index=idx)
+                    torch.eye(10)).cuda().index_select(dim=0, index=idx)
             else:
-                y = Variable(torch_eye(10)).index_select(dim=0, index=idx)
+                y = Variable(torch.eye(10)).index_select(dim=0, index=idx)
 
         reconstr = self.decoder(
-            torch_mul(x, y[:, :, None]).view(x.size(0), -1))
+            torch.mul(x, y[:, :, None]).view(x.size(0), -1))
 
         return cls, reconstr
 
@@ -128,7 +124,7 @@ class CapsuleLoss(nn.Module):
 def capsule_network(in_channels=1, num_classes=10,
                     num_caps=8, num_routing_iters=3, use_gpu=False):
     if use_gpu:
-        if not is_gpu_available():
+        if not torch.cuda.is_available():
             use_gpu = False
             print("oops! Something is wrong.\n can't use gpu!\n Then use cpu.",
                   sep=' ', end='n', file=sys.stdout, flush=False)

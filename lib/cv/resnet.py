@@ -3,6 +3,10 @@ import torch.nn.functional as F
 from math import sqrt
 
 
+__all__ = ['ResNet', 'resnet18', 'resnet34',
+           'resnet50', 'resnet101', 'resnet152']
+
+
 class IdentityLayers(nn.Module):
     def __init__(self, in_channels, out_channels, expansion,
                  stride=1, shortcut=None):
@@ -57,7 +61,7 @@ class ResNet(nn.Module):
             nn.Conv2d(in_channels, 64, kernel_size=7,
                       stride=2, padding=3, bias=False),
             nn.BatchNorm2d(64),
-            nn.Relu(inplace=True)
+            nn.ReLU(inplace=True)
         )
 
         self.conv2 = self._make_indentity_block(64, layers[0])

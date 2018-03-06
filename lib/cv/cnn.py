@@ -1,4 +1,7 @@
-import touch.nn as nn
+import torch.nn as nn
+
+
+__all__ = ['CNN', 'cnn']
 
 
 class CNN(nn.Module):
@@ -22,8 +25,8 @@ class CNN(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = x.view(x.size(0), -1)
-        output = self.fc(x)
-        return output, x
+        x = self.fc(x)
+        return x
 
 
 ''' future function
