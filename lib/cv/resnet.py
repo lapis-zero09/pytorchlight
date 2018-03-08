@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from math import sqrt
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34',
@@ -34,9 +33,9 @@ class IdentityLayers(nn.Module):
                           stride=self.stride, padding=1, bias=False),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(out_channels, out_channels * 4,
+                nn.Conv2d(out_channels, out_channels * expansion,
                           kernel_size=1, bias=False),
-                nn.BatchNorm2d(out_channels * 4)
+                nn.BatchNorm2d(out_channels * expansion)
             )
 
     def forward(self, x):
@@ -70,14 +69,6 @@ class ResNet(nn.Module):
         self.conv5 = self._make_indentity_block(512, layers[3], stride=2)
 
         self.fc = nn.Linear(512 * self.expansion, num_classes)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
 
     def _make_indentity_block(self, out_channels, num_layers, stride=1):
         shortcut = None
