@@ -2,6 +2,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+__all__ = ['ResNeXt', 'resnext26', 'resnext50', 'resnext101']
+
+
 class IdentityLayers_C(nn.Module):
     def __init__(self, in_channels, out_channels, expansion=2,
                  cardinality=32, stride=1):
@@ -49,17 +52,21 @@ class ResNeXt(nn.Module):
                  cardinality=32, base_width=4):
         super(ResNeXt, self).__init__()
         self.expansion = 2
-        self.conv = nn.Conv2d(in_channels, 64, kernel_size=3,
-                              stride=1, padding=1, bias=False)
-        self.bn = nn.BatchNorm2d(64)
-
         self.in_channels = 64
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels, self.in_channels, kernel_size=3,
+                      stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(self.in_channels),
+            nn.ReLU(inplace=True)
+        )
+
         self.cardinality = cardinality
         self.base_width = base_width
-        self.residual1 = self._make_indentity_block(cfg[0])
-        self.residual2 = self._make_indentity_block(cfg[1], stride=2)
-        self.residual3 = self._make_indentity_block(cfg[2], stride=2)
-        self.residual4 = self._make_indentity_block(cfg[3], stride=2)
+        self.conv2 = self._make_indentity_block(cfg[0])
+        self.conv3 = self._make_indentity_block(cfg[1], stride=2)
+        self.conv4 = self._make_indentity_block(cfg[2], stride=2)
+        self.conv5 = self._make_indentity_block(cfg[3], stride=2)
 
         self.fc = nn.Linear(self.cardinality * self.base_width,
                             num_classes)
@@ -79,19 +86,16 @@ class ResNeXt(nn.Module):
             self.in_channels = self.expansion * out_channels
 
         self.base_width *= 2
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.bn(x)
-        x = F.relu(x, inplace=True)
         x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
 
-        x = self.residual1(x)
-        x = self.residual2(x)
-        x = self.residual3(x)
-        x = self.residual4(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
 
         x = F.avg_pool2d(x, kernel_size=4)
         x = x.view(x.size(0), -1)

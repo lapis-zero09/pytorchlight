@@ -7,11 +7,8 @@ __all__ = ['ResNet', 'resnet18', 'resnet34',
 
 
 class IdentityLayers(nn.Module):
-    def __init__(self, in_channels, out_channels, expansion,
-                 stride=1, shortcut=None):
+    def __init__(self, in_channels, out_channels, expansion, stride):
         super(IdentityLayers, self).__init__()
-        self.shortcut = shortcut
-
         if expansion == 1:
             self.conv = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=3,
@@ -37,6 +34,17 @@ class IdentityLayers(nn.Module):
                 nn.BatchNorm2d(out_channels * expansion)
             )
 
+        self.shortcut = None
+        if stride != 1 or in_channels != out_channels * expansion:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels,
+                          out_channels * expansion,
+                          kernel_size=1,
+                          stride=stride,
+                          bias=False),
+                nn.BatchNorm2d(out_channels * expansion)
+            )
+
     def forward(self, x):
         out = self.conv(x)
 
@@ -53,52 +61,44 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.expansion = cfg[0]
         layers = cfg[1]
+        self.in_channels = 64
+        self.out_channels = 64
+        self.out_base = 1
 
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels, 64, kernel_size=7,
+            nn.Conv2d(in_channels, self.in_channels, kernel_size=7,
                       stride=2, padding=3, bias=False),
-            nn.BatchNorm2d(64),
+            nn.BatchNorm2d(self.in_channels),
             nn.ReLU(inplace=True)
         )
 
-        self.in_channels = 64
-        self.conv2 = self._make_indentity_block(64, layers[0])
-        self.conv3 = self._make_indentity_block(128, layers[1], stride=2)
-        self.conv4 = self._make_indentity_block(256, layers[2], stride=2)
-        self.conv5 = self._make_indentity_block(512, layers[3], stride=2)
+        self.conv2 = self._make_indentity_block(layers[0])
+        self.conv3 = self._make_indentity_block(layers[1], stride=2)
+        self.conv4 = self._make_indentity_block(layers[2], stride=2)
+        self.conv5 = self._make_indentity_block(layers[3], stride=2)
 
-        self.fc = nn.Linear(512 * self.expansion, num_classes)
+        self.fc = nn.Linear(self.in_channels, num_classes)
 
-    def _make_indentity_block(self, out_channels, num_layers, stride=1):
-        shortcut = None
+    def _make_indentity_block(self, num_layers, stride=1):
         layers = []
-
-        if stride != 1 or self.in_channels != out_channels * self.expansion:
-            shortcut = nn.Sequential(
-                nn.Conv2d(self.in_channels, out_channels * self.expansion,
-                          kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(out_channels * self.expansion)
-            )
-
-        layers.append(
-            IdentityLayers(self.in_channels, out_channels,
-                           expansion=self.expansion,
-                           stride=stride, shortcut=shortcut)
-        )
-        self.in_channels = out_channels * self.expansion
-
-        for i in range(1, num_layers):
+        strides_for_layer = [stride] + [1] * (num_layers - 1)
+        for stride in strides_for_layer:
             layers.append(
-                IdentityLayers(self.in_channels, out_channels,
+                IdentityLayers(in_channels=self.in_channels,
+                               out_channels=self.out_channels,
+                               stride=stride,
                                expansion=self.expansion)
             )
+            self.in_channels = self.expansion * self.out_channels
+
+        self.out_channels *= 2
 
         return nn.Sequential(*layers)
 
     def forward(self, x):
         x = self.conv1(x)
-
         x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+
         x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
