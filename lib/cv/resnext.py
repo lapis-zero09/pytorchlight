@@ -89,7 +89,7 @@ class ResNeXt(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.conv(x)
+        x = self.conv1(x)
         x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
 
         x = self.conv2(x)
