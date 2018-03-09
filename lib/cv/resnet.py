@@ -59,11 +59,9 @@ class IdentityLayers(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, in_channels, num_classes, cfg):
         super(ResNet, self).__init__()
-        self.expansion = cfg[0]
-        layers = cfg[1]
+        self.expansion, layers = cfg
         self.in_channels = 64
         self.out_channels = 64
-        self.out_base = 1
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels, self.in_channels, kernel_size=7,

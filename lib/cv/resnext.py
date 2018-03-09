@@ -51,8 +51,10 @@ class ResNeXt(nn.Module):
     def __init__(self, in_channels, num_classes, cfg,
                  cardinality=32, base_width=4):
         super(ResNeXt, self).__init__()
-        self.expansion = 2
+        self.expansion, layers = cfg
         self.in_channels = 64
+        self.cardinality = cardinality
+        self.base_width = base_width
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels, self.in_channels, kernel_size=3,
@@ -61,12 +63,10 @@ class ResNeXt(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        self.cardinality = cardinality
-        self.base_width = base_width
-        self.conv2 = self._make_indentity_block(cfg[0])
-        self.conv3 = self._make_indentity_block(cfg[1], stride=2)
-        self.conv4 = self._make_indentity_block(cfg[2], stride=2)
-        self.conv5 = self._make_indentity_block(cfg[3], stride=2)
+        self.conv2 = self._make_indentity_block(layers[0])
+        self.conv3 = self._make_indentity_block(layers[1], stride=2)
+        self.conv4 = self._make_indentity_block(layers[2], stride=2)
+        self.conv5 = self._make_indentity_block(layers[3], stride=2)
 
         self.fc = nn.Linear(self.cardinality * self.base_width,
                             num_classes)
@@ -104,9 +104,9 @@ class ResNeXt(nn.Module):
 
 
 cfg = {
-    '26': [2, 2, 2, 2],
-    '50': [3, 4, 6, 3],
-    '101': [3, 4, 23, 3]
+    '26': [2, [2, 2, 2, 2]],
+    '50': [2, [3, 4, 6, 3]],
+    '101': [2, [3, 4, 23, 3]]
 }
 
 
