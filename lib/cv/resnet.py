@@ -10,13 +10,12 @@ class IdentityLayers(nn.Module):
     def __init__(self, in_channels, out_channels, expansion,
                  stride=1, shortcut=None):
         super(IdentityLayers, self).__init__()
-        self.stride = stride
         self.shortcut = shortcut
 
         if expansion == 1:
             self.conv = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=3,
-                          stride=self.stride, padding=1, bias=False),
+                          stride=stride, padding=1, bias=False),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
                 nn.Conv2d(out_channels, out_channels, kernel_size=3,
@@ -30,7 +29,7 @@ class IdentityLayers(nn.Module):
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
                 nn.Conv2d(out_channels, out_channels, kernel_size=3,
-                          stride=self.stride, padding=1, bias=False),
+                          stride=stride, padding=1, bias=False),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
                 nn.Conv2d(out_channels, out_channels * expansion,
@@ -52,7 +51,6 @@ class IdentityLayers(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, in_channels, num_classes, cfg):
         super(ResNet, self).__init__()
-        self.in_channels = 64
         self.expansion = cfg[0]
         layers = cfg[1]
 
@@ -63,6 +61,7 @@ class ResNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        self.in_channels = 64
         self.conv2 = self._make_indentity_block(64, layers[0])
         self.conv3 = self._make_indentity_block(128, layers[1], stride=2)
         self.conv4 = self._make_indentity_block(256, layers[2], stride=2)
