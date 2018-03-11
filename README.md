@@ -17,5 +17,8 @@ pytorch examples
   
 
   - Reference
-    - Systematic evaluation of CNN: https://arxiv.org/abs/1606.02228
-    - Identity Mappings in Deep Residual Networks: https://arxiv.org/abs/1603.05027
+    - cv
+      - Systematic evaluation of CNN: https://arxiv.org/abs/1606.02228
+      - Identity Mappings in Deep Residual Networks: https://arxiv.org/abs/1603.05027
+    - text
+      - Improving Distributional Similarity with Lessons Learned from Word Embeddings: https://transacl.org/ojs/index.php/tacl/article/view/570
